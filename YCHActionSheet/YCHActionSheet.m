@@ -295,10 +295,29 @@ typedef NS_OPTIONS(NSUInteger, YCHRectCorner) {
     [UIView animateWithDuration:kYCHActionSheetAnimationDuration delay:0.0 usingSpringWithDamping:1 initialSpringVelocity:0 options:0 animations:animation completion:completion];
 }
 
+- (void)updateUIInVisibleSheet
+{
+	[self updateUI];
+
+	void (^animation)(void) = ^{
+		[self setupUI];
+	};
+	
+	void (^completion)(BOOL finished) = ^(BOOL finished) {
+		_willAnimate = NO;
+		if ([self.delegate respondsToSelector:@selector(didPresentActionSheet:)])
+		{
+			[self.delegate didPresentActionSheet:self];
+		}
+	};
+	
+	[UIView animateWithDuration:kYCHActionSheetAnimationDuration delay:0.0 usingSpringWithDamping:1 initialSpringVelocity:0 options:0 animations:animation completion:completion];
+}
+
 - (void)dismiss
 {
     _willAnimate = YES;
-    
+	
     if ([self.delegate respondsToSelector:@selector(willDismissActionSheet:)])
     {
         [self.delegate willDismissActionSheet:self];
@@ -354,6 +373,35 @@ typedef NS_OPTIONS(NSUInteger, YCHRectCorner) {
     }
 }
 
+- (void)updateUI
+{
+	CGFloat offsetY = 0;
+
+	for (int i = 0; i < self.sections.count; i++)
+	{
+		YCHActionSheetSection *section = self.sections[i];
+
+		if (section.titleLabel) {
+			offsetY += kYCHActionSheetButtonHeight;
+		}
+
+		for (int j = 0; j < section.buttons.count; j++)
+		{
+			YCHButton *button = section.buttons[j];
+			button.sectionIndex = i;
+			button.buttonIndex = j;
+			if (!button.superview) {
+				button.tintColor = [[UIApplication sharedApplication] keyWindow].tintColor;
+				button.frame = CGRectMake(0, offsetY, 320, kYCHActionSheetButtonHeight);
+				[_scrollView addSubview:button];
+				[_scrollView sendSubviewToBack:button];
+			}
+
+			offsetY += kYCHActionSheetButtonHeight;
+		}
+	}
+}
+
 - (void)setupUI
 {
     // setup scrollView frame and contentSize
@@ -375,15 +423,14 @@ typedef NS_OPTIONS(NSUInteger, YCHRectCorner) {
         {
             section.titleLabel.frame = CGRectMake(0, offsetY, buttonWidth, kYCHActionSheetButtonHeight);
             [section.titleLabel roundCorners:YCHRectCornerTop];
-            
             offsetY += kYCHActionSheetButtonHeight;
         }
         
         for (YCHButton *button in section.buttons)
         {
+			button.hidden = NO;
             button.frame = CGRectMake(0, offsetY, buttonWidth, kYCHActionSheetButtonHeight);
             [self roundCornerButton:button inSection:section];
-            
             offsetY += kYCHActionSheetButtonHeight;
         }
         
@@ -629,14 +676,25 @@ typedef NS_OPTIONS(NSUInteger, YCHRectCorner) {
 
 #pragma mark - Public methods
 
+- (UIButton *)insertButtonWithTitle:(NSString *)title atIndex:(NSInteger)index
+{
+	UIButton *button;
+	[_mutableButtonTitles insertObject:title atIndex:index];
+	button = [self createButtonWithTitle:title];
+	[_mutableButtons insertObject:button atIndex:index];
+
+	NSLog (@"BUTTON TITLES:  %@", _mutableButtonTitles);
+
+	return button;
+}
+
 - (NSInteger)addButtonWithTitle:(NSString *)title
 {
     if (self.actionSheet.isVisible)
     {
-        NSLog(@"YCHActionSheetSection error - You cannot add a button title when action sheet is already visible");
-        return -1;
+		return -1;
     }
-    
+
     [_mutableButtonTitles addObject:title];
     [self setupButtons];
     return _mutableButtonTitles.count-1;
@@ -667,21 +725,28 @@ typedef NS_OPTIONS(NSUInteger, YCHRectCorner) {
     _mutableButtons = [NSMutableArray array];
     for (NSString *buttonTitle in _mutableButtonTitles)
     {
-        YCHButton *button = [YCHButton buttonWithType:UIButtonTypeSystem];
-        button.showBottomLine = buttonTitle != _mutableButtonTitles.lastObject;
-
-        NSMutableAttributedString *attributed = [[NSMutableAttributedString alloc] initWithString:buttonTitle
-                                                                                       attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:21.0]}];
-        if (self.isDestructiveSection)
-        {
-            [attributed addAttribute:NSForegroundColorAttributeName value:[UIColor redColor] range:NSMakeRange(0, buttonTitle.length)];
-        }
-        
-        [button setAttributedTitle:attributed forState:UIControlStateNormal];
-        [button setBackgroundColor:kYCHActionSheetDefaultBackgroundColor];
-        
+		YCHButton *button = [self createButtonWithTitle:buttonTitle];
+		
         [_mutableButtons addObject:button];
     }
+}
+
+- (YCHButton *)createButtonWithTitle:(NSString *)buttonTitle
+{
+	YCHButton *button = [YCHButton buttonWithType:UIButtonTypeSystem];
+	button.showBottomLine = buttonTitle != _mutableButtonTitles.lastObject;
+
+	NSMutableAttributedString *attributed = [[NSMutableAttributedString alloc] initWithString:buttonTitle
+																				   attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:21.0]}];
+	if (self.isDestructiveSection)
+	{
+		[attributed addAttribute:NSForegroundColorAttributeName value:[UIColor redColor] range:NSMakeRange(0, buttonTitle.length)];
+	}
+	
+	[button setAttributedTitle:attributed forState:UIControlStateNormal];
+	[button setBackgroundColor:[UIColor whiteColor]];
+	
+	return button;
 }
 
 @end

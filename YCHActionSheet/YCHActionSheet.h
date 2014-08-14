@@ -83,6 +83,9 @@
 // show an action sheet animated. view should be your controller main's view
 - (void)showInView:(UIView *)view;
 
+- (void)updateUIInVisibleSheet;
+
+
 // return the added section index. adding a section while action sheet is visible will do nothing and return -1
 - (NSInteger)addSection:(YCHActionSheetSection *)section;
 
@@ -122,6 +125,8 @@
 
 // return added button index. adding a button while action sheet is visible will do nothing and return -1
 - (NSInteger)addButtonWithTitle:(NSString *)title;
+
+- (UIButton *)insertButtonWithTitle:(NSString *)title atIndex:(NSInteger)index;
 
 // return a button title for a given index. crash if index is out of bounds
 - (NSString *)buttonTitleAtIndex:(NSInteger)index;
