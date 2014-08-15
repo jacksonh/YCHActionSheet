@@ -428,7 +428,6 @@ typedef NS_OPTIONS(NSUInteger, YCHRectCorner) {
         
         for (YCHButton *button in section.buttons)
         {
-			button.hidden = NO;
             button.frame = CGRectMake(0, offsetY, buttonWidth, kYCHActionSheetButtonHeight);
             [self roundCornerButton:button inSection:section];
             offsetY += kYCHActionSheetButtonHeight;
