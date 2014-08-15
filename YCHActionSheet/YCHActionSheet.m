@@ -492,7 +492,7 @@ typedef NS_OPTIONS(NSUInteger, YCHRectCorner) {
 
 - (void)roundCornerButton:(YCHButton *)button inSection:(YCHActionSheetSection *)section
 {
-    if (section.buttons.count == 1)
+    if (section.buttons.count == 1 && !section.titleLabel)
     {
         [button roundCorners:YCHRectCornerAll];
     }
